@@ -1,0 +1,64 @@
+name: Import upstream Demucs
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout DemucsH1
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Download upstream source
+        run: |
+          git clone --depth 1 https://github.com/facebookresearch/demucs.git /tmp/demucs-upstream
+
+      - name: Copy source files into this independent repository
+        shell: bash
+        run: |
+          set -euo pipefail
+          rsync -a --delete \
+            --exclude='.git/' \
+            --exclude='.github/workflows/' \
+            --exclude='README.md' \
+            /tmp/demucs-upstream/ ./
+          cp /tmp/demucs-upstream/LICENSE ./LICENSE
+          cat > README.md <<'EOF'
+# DemucsH1
+
+**Maintainer:** Atik Hasan  
+**Role:** Student and independent developer
+
+DemucsH1 is an independently maintained copy based on the upstream Demucs project. Atik Hasan maintains this repository and is responsible for changes made here.
+
+## Upstream origin and license
+
+Original project: https://github.com/facebookresearch/demucs
+
+The upstream Demucs code is licensed under the MIT License. The original LICENSE file and required copyright/permission notice are retained. This repository does not claim original Demucs authorship or replace the upstream license. Upstream copyright notices in source files and documentation are retained where applicable.
+
+## Maintenance
+
+Atik Hasan — Student and independent developer.
+
+Changes specific to DemucsH1 will be maintained separately from the upstream project.
+EOF
+
+      - name: Commit imported source
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to import."
+            exit 0
+          fi
+          git commit -m "Import Demucs source as independent DemucsH1 copy"
+          git push origin HEAD:main
